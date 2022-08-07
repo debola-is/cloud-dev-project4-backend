@@ -23,6 +23,8 @@ const logger = createLogger('auth')
 // To get this URL you need to go to an Auth0 page -> Show Advanced Settings -> Endpoints -> JSON Web Key Set
 const jwksUrl = 'https://dev-7imzq2zn.us.auth0.com/.well-known/jwks.json'
 
+var cachedSecret: string
+
 export const handler: APIGatewayAuthorizerHandler =async (event:APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> => {
   logger.info('Authorizing a user', event.authorizationToken)
   try {
@@ -65,6 +67,14 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
   const token = getToken(authHeader)
   const jwt: Jwt = decode(token, { complete: true }) as Jwt
 
+  const keys = await getKeys(jwksUrl)
+
+  // Although unlikely, checking to see if jwks did not return any keys
+  
+  if (!keys || !keys.length) {
+    throw new Error("The JWKS endpoint did not return any keys")
+  }
+
   // TODO: Implement token verification
   // You should implement it similarly to how it was implemented for the exercise for the lesson 5
   // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
@@ -81,4 +91,18 @@ function getToken(authHeader: string): string {
   const token = split[1]
 
   return token
+}
+
+async function getKeys(url:string) {
+  if (cachedSecret) {
+    return cachedSecret
+  }
+  try{
+    const data = await Axios.get(jwksUrl)
+    return data.data.keys
+  }
+  catch(e) {
+    console.log("Unable to retrieve JWKS", e)
+    return null
+  }
 }
