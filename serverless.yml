@@ -40,6 +40,12 @@ provider:
             - xray:PutTelemetryRecords
             - xray:PutTraceSegments
           Resource: "*"
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+          Resource: "*"
 
 
 functions:
