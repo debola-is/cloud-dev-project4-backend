@@ -70,15 +70,29 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
   const keys = await getKeys(jwksUrl)
 
   // Although unlikely, checking to see if jwks did not return any keys
-  
+
   if (!keys || !keys.length) {
     throw new Error("The JWKS endpoint did not return any keys")
   }
 
+  const signingKeys = keys
+  .filter(key => key.use === 'sig' // JWK property `use` determines the JWK is for signature verification
+              && key.kty === 'RSA' // We are only supporting RSA (RS256)
+              && key.kid           // The `kid` must be present to be useful for later
+              && ((key.x5c && key.x5c.length) || (key.n && key.e)) // Has useful public keys
+  )
+
+  // If at least one signing key doesn't exist we have a problem... Kaboom.
+  if (!signingKeys.length) {
+    throw new Error('The JWKS endpoint did not contain any signature verification keys');
+  }
+
+  const signingKey = getSigningKey(jwt.header.kid, signingKeys)
+  if (signingKey) return jwt.payload
   // TODO: Implement token verification
   // You should implement it similarly to how it was implemented for the exercise for the lesson 5
   // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
-  return undefined
+  
 }
 
 function getToken(authHeader: string): string {
@@ -98,11 +112,20 @@ async function getKeys(url:string) {
     return cachedSecret
   }
   try{
-    const data = await Axios.get(jwksUrl)
+    const data = await Axios.get(url)
     return data.data.keys
   }
   catch(e) {
     console.log("Unable to retrieve JWKS", e)
     return null
   }
+}
+
+function getSigningKey(keyIdentifier, keys) {
+  const signingKey = keys.find(key => key.kid === keyIdentifier)
+
+  if (!signingKey) {
+    throw new Error(`Unable to find a signing key that matches ${keyIdentifier}`)
+  }
+  return signingKey
 }
