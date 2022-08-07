@@ -14,19 +14,28 @@ const logger = createLogger('TodosAccess')
 export class TodosAccess {
     constructor( 
         private readonly docClient: DocumentClient = createDynamodbClient(),
-        private readonly todosTable = process.env.TODOS_TABLE
+        private readonly todosTable = process.env.TODOS_TABLE,
+        private readonly todosIndexName = process.env.TODOS_INDEX_NAME
 
     ){}
 
-    async getTodos (): Promise<TodoItem[]> {
+    async getUserTodos (userId): Promise<TodoItem[]> {
         console.log("Getting all todo items")
 
-        const result = await this.docClient.scan({
-            TableName: this.todosTable
+        const result = await this.docClient.query({
+            TableName: this.todosTable,
+            IndexName: this.todosIndexName,
+            KeyConditionExpression: "userId = :userId",
+            ExpressionAttributeValues: {
+                ":userId" : userId
+            }
         }).promise()
 
-        const items = result.Items
-        return items as TodoItem[]
+        if (result.Count !== 0 ) {
+            const items = result.Items
+            return items as TodoItem[]
+        }
+        return null
     }
 
     async createTodo(todo: TodoItem): Promise<TodoItem> {

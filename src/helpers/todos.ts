@@ -11,6 +11,6 @@ import * as createError from 'http-errors'
 
 const todosAccess = new TodosAccess()
 
-export async function getAllTodos(): Promise<TodoItem[]> {
-    return todosAccess.getTodos()
+export async function getTodosForUser(userId): Promise<TodoItem[]> {
+    return todosAccess.getUserTodos(userId)
 }
