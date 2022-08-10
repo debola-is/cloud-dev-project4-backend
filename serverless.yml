@@ -20,7 +20,7 @@ provider:
     lambda: true
     apiGateway: true
 
-  # Use these variables in the functions and resouorces section below. For example, 
+  # Use these variables in the functions and resouorces section below. For example
   # ${self:provider.environment.ATTACHMENT_S3_BUCKET}
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
